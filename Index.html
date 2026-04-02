@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title> Open when you feels what had written on each envelope.</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #ffffff;  /* pure white background */
+      font-family: 'Segoe UI', 'Quicksand', 'Poppins', 'Inter', system-ui, sans-serif;
+      padding: 2rem 1.5rem;
+      color: #2c2a2b;
+    }
+
+    .gallery {
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    /* header pastel */
+    .header-section {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    h1 {
+      font-size: 2.6rem;
+      font-weight: 500;
+      background: linear-gradient(135deg, #f3a683, #f7d794, #c7ecee, #dff9fb);
+      background-clip: text;
+      -webkit-background-clip: text;
+      color: transparent;
+      letter-spacing: -0.5px;
+    }
+
+    .subhead {
+      color: #9b7f66;
+      font-weight: 400;
+      font-size: 1rem;
+      margin-top: 8px;
+      border-top: 1px solid #ffe0cf;
+      display: inline-block;
+      padding-top: 10px;
+    }
+
+    /* envelope grid */
+    .envelope-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 260px));
+      justify-content: center;
+      gap: 2rem 2rem;
+      margin: 1.5rem 0 2rem;
+    }
+
+    /* 3D flip card container */
+    .flip-card {
+      background-color: transparent;
+      width: 100%;
+      aspect-ratio: 200 / 145; /* envelope proportion */
+      perspective: 1500px;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+
+    .flip-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .flip-card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      text-align: center;
+      transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+      transform-style: preserve-3d;
+      border-radius: 18px;
+      box-shadow: 0 12px 20px rgba(0, 0, 0, 0.05);
+    }
+
+    /* flipped state (triggered by click, we toggle .flipped class) */
+    .flip-card.flipped .flip-card-inner {
+      transform: rotateY(180deg);
+    }
+
+    /* front & back styling */
+    .flip-front, .flip-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      border-radius: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+    }
+
+    /* FRONT: envelope style (pastel colored with name on it) */
+    .flip-front {
+      background: transparent;
+      transform: rotateY(0deg);
+    }
+
+    .envelope-svg-wrapper {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .envelope-name {
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      background: rgba(255, 250, 240, 0.85);
+      backdrop-filter: blur(3px);
+      padding: 5px 14px;
+      border-radius: 60px;
+      margin-top: 8px;
+      color: #4f3e2e;
+      display: inline-block;
+      border: 1px solid rgba(255, 235, 215, 0.9);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+      font-family: monospace;
+    }
+
+    /* BACK: minimal "secret" side, but the actual letter will open in modal after flip animation */
+    .flip-back {
+      background: #fef8ef;
+      transform: rotateY(180deg);
+      border: 1px solid #ffefdf;
+      border-radius: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: inset 0 0 0 1px rgba(255,245,225,0.8), 0 8px 20px rgba(0,0,0,0.05);
+    }
+
+    .flip-back span {
+      font-size: 1rem;
+      color: #b28a66;
+      font-weight: 400;
+      background: #ffffffc9;
+      padding: 6px 14px;
+      border-radius: 40px;
+    }
+
+    .flip-back small {
+      font-size: 0.7rem;
+      color: #d6b18b;
+    }
+
+    /* MODAL (letter reveal after flip) */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(255, 248, 240, 0.96);
+      backdrop-filter: blur(12px);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      transition: opacity 0.3s;
+    }
+
+    .modal.active {
+      display: flex;
+      animation: fadeInSoft 0.3s ease;
+    }
+
+    @keyframes fadeInSoft {
+      from { opacity: 0; backdrop-filter: blur(0px); }
+      to { opacity: 1; backdrop-filter: blur(12px); }
+    }
+
+    .letter-container {
+      background: #fffdf9;
+      width: 90%;
+      max-width: 1000px;
+      max-height: 85vh;
+      border-radius: 36px;
+      box-shadow: 0 30px 45px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 240, 215, 0.8);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: letterRise 0.45s cubic-bezier(0.2, 0.9, 0.4, 1.2);
+    }
+
+    @keyframes letterRise {
+      0% {
+        opacity: 0;
+        transform: scale(0.94) translateY(18px);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    .letter-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.8rem;
+      background: #fffaf2;
+      border-bottom: 1px solid #ffefe2;
+    }
+
+    .letter-header h3 {
+      font-weight: 500;
+      color: #5e4b3a;
+      font-size: 1.3rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .close-modal {
+      background: #f5ede4;
+      border: none;
+      font-size: 1.8rem;
+      cursor: pointer;
+      color: #b2967c;
+      transition: 0.2s;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .close-modal:hover {
+      background: #ffe0cf;
+      color: #634e3a;
+      transform: rotate(90deg);
+    }
+
+    .letter-content {
+      padding: 2rem 2rem 2rem 2rem;
+      overflow-y: auto;
+      background: #fffcf7;
+      display: flex;
+      flex-direction: column;
+      gap: 1.8rem;
+    }
+
+    .media-item {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      background: #fffbf5;
+      border-radius: 24px;
+    }
+
+    .media-item img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      object-fit: contain;
+      border-radius: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    }
+
+    .media-item video {
+      width: 100%;
+      max-width: 100%;
+      height: auto;
+      border-radius: 20px;
+      background: #f8f2ea;
+      outline: none;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    /* New style for Google Map container */
+    .map-container {
+      width: 100%;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+    
+    .map-container iframe {
+      width: 100%;
+      height: 400px;
+      border: none;
+      display: block;
+    }
+
+    .media-caption {
+      font-size: 0.8rem;
+      color: #b0937a;
+      text-align: center;
+      margin-top: 8px;
+      font-style: italic;
+    }
+
+    .placeholder-message {
+      text-align: center;
+      padding: 2rem;
+      background: #fff6ed;
+      border-radius: 32px;
+      color: #ac8e72;
+    }
+
+    .letter-content::-webkit-scrollbar {
+      width: 8px;
+    }
+    .letter-content::-webkit-scrollbar-track {
+      background: #f7ede3;
+      border-radius: 10px;
+    }
+    .letter-content::-webkit-scrollbar-thumb {
+      background: #e2cfbc;
+      border-radius: 10px;
+    }
+
+    @media (max-width: 640px) {
+      .envelope-grid {
+        gap: 1.3rem;
+      }
+      .letter-content {
+        padding: 1.2rem;
+      }
+      .letter-header h3 {
+        font-size: 1rem;
+      }
+      h1 {
+        font-size: 2rem;
+      }
+      .flip-card {
+        aspect-ratio: 200 / 145;
+      }
+      .map-container iframe {
+        height: 280px;
+      }
+    }
+
+    /* small animation for letter open after flip */
+    .envelope-click-effect {
+      animation: pulseFlip 0.3s ease-out;
+    }
+
+    @keyframes pulseFlip {
+      0% { transform: scale(1); }
+      50% { transform: scale(0.97); }
+      100% { transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+<div class="gallery">
+  <div class="header-section">
+    <h1> Dear Sahil, Open When you feels like what had written on each Envelope. </h1>
+    <div class="subhead">  ❤ ❤ ❤ </div>
+  </div>
+  <div class="envelope-grid" id="envelopeGrid"></div>
+</div>
+
+<!-- modal for letter content (images/videos) -->
+<div id="letterModal" class="modal">
+  <div class="letter-container">
+    <div class="letter-header">
+      <h3>✉️ <span id="modalLetterTitle">Secret letter</span></h3>
+      <button class="close-modal" id="closeModalBtn">✕</button>
+    </div>
+    <div class="letter-content" id="letterContentArea">
+      <div class="placeholder-message">✨ unfolding memories ... ✨</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ------------------------------------------------------------------
+  // 10 ENVELOPES each with a UNIQUE NAME (written on the envelope)
+  // Pastel color palette for each envelope front.
+  // When user clicks any envelope -> 3D flip animation happens,
+  // then AFTER flip, the modal opens revealing images/videos.
+  // ------------------------------------------------------------------
+  
+  // Unique names for each envelope (you can edit freely)
+  const envelopeNames = [
+    " Miss Home",
+    " Miss Family",
+    " Miss Bengaluru",
+    " Miss Me",
+    " Feels like Giving Up",
+    " You are SAD or Feels like Crying",
+    " Needed a Hug",
+    " you Can't Sleep",
+    " Needed a Kiss 💋 ",
+    " We are together 💌"
+  ];
+
+  // Pastel color schemes (body, flap, accent, wax)
+  const pastelSchemes = [
+    { body: "#F9E7E7", flap: "#FADADD", accent: "#FBC8B5", wax: "#F3C6C1" },
+    { body: "#E6F7F0", flap: "#D4F1E6", accent: "#BCE5D5", wax: "#C5E0D4" },
+    { body: "#FFF3E0", flap: "#FFE4C4", accent: "#FFD9B5", wax: "#FAD6A5" },
+    { body: "#E3F0FF", flap: "#D1E4FC", accent: "#B8D4F5", wax: "#C2D9F8" },
+    { body: "#FCE4EC", flap: "#FAD0DF", accent: "#F7B9CF", wax: "#FAC0D4" },
+    { body: "#EAE5FF", flap: "#DFD6FF", accent: "#CFC2F5", wax: "#D9CCFC" },
+    { body: "#FFF0E7", flap: "#FFE2D3", accent: "#FDD0BA", wax: "#FED7C4" },
+    { body: "#DEF5E5", flap: "#C9ECD9", accent: "#B2E2CA", wax: "#BCE6D0" },
+    { body: "#FFF5E6", flap: "#FFEAD4", accent: "#FCE0C2", wax: "#FFE4CD" },
+    { body: "#F0F2FF", flap: "#E5E8FF", accent: "#D3D9FF", wax: "#DCE1FF" }
+  ];
+  
+  // ---------- LETTER DATA (images + videos + MAP) -------------
+  // Each envelope has associated media (multiple images/videos)
+  // You can replace src with your own uploaded files.
+  const lettersData = [
+    { // Miss Home (NOW WITH GOOGLE MAP)
+      title: "Miss Home 🏠",
+      media: [
+       
+        { type: "image", src: "image/Home_letter.jpg", caption: "A letter from home" },
+        { type: "video", src: "video/Home.mp4", caption: "Home memories 🎬" },
+         { 
+          type: "map", 
+          src: "https://www.google.com/maps/embed?pb=!4v1775146777735!6m8!1m7!1swjuGqiMigLA-JcgrWVqLhA!2m2!1d20.61577509899268!2d72.92713124372618!3f281.79025102704327!4f-3.856276247831275!5f0.7820865974627469",
+          caption: "📍 Home is where the heart is"
+        }
+      ]
+    },
+    { // Miss Family
+      title: "Miss Family",
+      media: [
+        { type: "image", src: "image/Family_letter.jpg" },
+        { type: "image", src: "image/Family.jpg" },
+      ]
+    },
+    { // Miss Bengaluru
+      title: "Miss Bengaluru",
+      media: [
+        { type: "image", src: "image/Banglore_letter.jpg"},
+         { type: "video", src: "video/Banglore.mp4" }
+      ]
+    },
+    { // Miss Me
+      title: "Miss Me",
+      media: [
+        { type: "image", src: "image/Miss.jpg" },
+      ]
+    },
+    { // Feels like Giving Up
+      title: "Feels like Giving Up",
+      media: [
+           { type: "image", src: "image/Giving up.jpg" },
+      ]
+    },
+    { // You are SAD or Feels like Crying
+      title: "You are SAD or Feels like Crying",
+      media: [
+        { type: "image", src: "image/Sad_cry.jpg" },
+      ]
+    },
+    { // Needed a Hug
+      title: "Needed a Hug",
+      media: [
+        { type: "image", src: "image/ HUg.jpg" },
+      ]
+    },
+    { // you Can't Sleep
+      title: "you Can't Sleep",
+      media: [
+        { type: "image", src: "image/Sleep.jpg" },
+      ]
+    },
+    { // Needed a Kiss 💋
+      title: "Needed a Kiss 💋",
+      media: [
+        { type: "image", src: "image/Kiss_letter.jpg" },
+        { type: "image", src: "image/kiss.jpg" },
+      ]
+    },
+    { // We are together 💌
+      title: "We are together 💌",
+      media: [
+        { type: "image", src: "image/Forever.jpg" },
+      ]
+    }
+  ];
+
+  // helper escape
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+      if (m === '&') return '&amp;';
+      if (m === '<') return '&lt;';
+      if (m === '>') return '&gt;';
+      return m;
+    });
+  }
+
+  // render media inside modal (UPDATED to support Google Maps)
+  function renderLetterMedia(letterData) {
+    const mediaArray = letterData.media;
+    if (!mediaArray || mediaArray.length === 0) {
+      return `<div class="placeholder-message">📜 This letter is waiting for your images & videos.<br>Upload your memories soon.</div>`;
+    }
+    let html = '';
+    for (let i = 0; i < mediaArray.length; i++) {
+      const item = mediaArray[i];
+      // Handle Google Maps embed
+      if (item.type === 'map') {
+        html += `
+          <div class="media-item" style="flex-direction: column; padding: 0;">
+            <div class="map-container">
+              <iframe 
+                src="${item.src}" 
+                title="Google Map - Home Location"
+                allowfullscreen="" 
+                loading="lazy" 
+                referrerpolicy="no-referrer-when-downgrade">
+              </iframe>
+            </div>
+            ${item.caption ? `<div class="media-caption">🗺️ ${escapeHtml(item.caption)}</div>` : ''}
+          </div>
+        `;
+      }
+      else if (item.type === 'image') {
+        html += `
+          <div class="media-item">
+            <img src="${item.src}" alt="letter visual ${i+1}" loading="lazy" />
+          </div>
+          ${item.caption ? `<div class="media-caption">${escapeHtml(item.caption)}</div>` : ''}
+        `;
+      } else if (item.type === 'video') {
+        html += `
+          <div class="media-item">
+            <video controls preload="metadata" poster="${item.poster || ''}">
+              <source src="${item.src}" type="video/mp4">
+              Your browser does not support video.
+            </video>
+          </div>
+          ${item.caption ? `<div class="media-caption">🎥 ${escapeHtml(item.caption)}</div>` : ''}
+        `;
+      }
+    }
+    return `<div style="display: flex; flex-direction: column; gap: 1.6rem;">${html}</div>`;
+  }
+
+  // create pastel envelope SVG with custom name printed on it (front side)
+  function createEnvelopeFrontSVG(scheme, envelopeNameText) {
+    const bodyColor = scheme.body;
+    const flapColor = scheme.flap;
+    const accentStroke = scheme.accent;
+    const waxColor = scheme.wax;
+    // we embed the name as text inside the SVG (so it's part of envelope design)
+    return `<svg class="envelope-svg" viewBox="0 0 200 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="4" y="4" width="192" height="132" rx="12" fill="${bodyColor}" stroke="${accentStroke}" stroke-width="1.4" />
+      <path d="M4 14 L100 54 L196 14" fill="${flapColor}" stroke="${accentStroke}" stroke-width="1.2" stroke-linejoin="round" />
+      <line x1="4" y1="92" x2="196" y2="92" stroke="#e2cfba" stroke-width="1" stroke-dasharray="3 2" opacity="0.6"/>
+      <circle cx="100" cy="92" r="10" fill="${waxColor}" stroke="${accentStroke}" stroke-width="1" />
+      <circle cx="100" cy="92" r="4" fill="#fff0e3" opacity="0.7" />
+      <!-- Envelope name label beautifully placed -->
+      <text x="100" y="127" text-anchor="middle" fill="#5f4c38" font-size="9" font-weight="500" font-family="'Segoe UI', monospace">✧</text>
+      <rect x="28" y="68" width="144" height="18" rx="20" fill="rgba(255,245,235,0.7)" />
+      <text x="100" y="81.5" text-anchor="middle" fill="#4a3627" font-size="7.5" font-weight="600" font-family="'Inter', sans-serif">${escapeHtml(envelopeNameText)}</text>
+    </svg>`;
+  }
+
+  // modal elements
+  const modal = document.getElementById('letterModal');
+  const closeModalBtn = document.getElementById('closeModalBtn');
+  const letterContentArea = document.getElementById('letterContentArea');
+  const modalLetterTitle = document.getElementById('modalLetterTitle');
+
+  function closeModal() {
+    modal.classList.remove('active');
+  }
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
+  closeModalBtn.addEventListener('click', closeModal);
+
+  // function to open modal with specific envelope letter data
+  function showLetterModal(envelopeIndex) {
+    const data = lettersData[envelopeIndex] || {
+      title: `Letter from ${envelopeNames[envelopeIndex]}`,
+      media: [{ type: "image", src: "https://picsum.photos/id/1/900/1100", caption: "Awaiting your story" }]
+    };
+    modalLetterTitle.innerText = data.title || envelopeNames[envelopeIndex];
+    const rendered = renderLetterMedia(data);
+    letterContentArea.innerHTML = rendered;
+    modal.classList.add('active');
+    letterContentArea.scrollTop = 0;
+  }
+
+  // BUILD all 10 flip-envelopes with unique names
+  const gridContainer = document.getElementById('envelopeGrid');
+  
+  for (let i = 0; i < 10; i++) {
+    const name = envelopeNames[i];
+    const colorScheme = pastelSchemes[i % pastelSchemes.length];
+    
+    // create flip-card container
+    const flipCard = document.createElement('div');
+    flipCard.className = 'flip-card';
+    flipCard.setAttribute('data-envelope-idx', i);
+    
+    // inner structure
+    const inner = document.createElement('div');
+    inner.className = 'flip-card-inner';
+    
+    // FRONT side (envelope with name)
+    const frontDiv = document.createElement('div');
+    frontDiv.className = 'flip-front';
+    const svgHtml = createEnvelopeFrontSVG(colorScheme, name);
+    frontDiv.innerHTML = `<div class="envelope-svg-wrapper">${svgHtml}<div class="envelope-name">📮 ${escapeHtml(name)}</div></div>`;
+    
+    // BACK side (simple hint)
+    const backDiv = document.createElement('div');
+    backDiv.className = 'flip-back';
+    backDiv.innerHTML = `<span>✧ sealed with Love ✧</span><small>click to open letter</small>`;
+    
+    inner.appendChild(frontDiv);
+    inner.appendChild(backDiv);
+    flipCard.appendChild(inner);
+    
+    // click handler: first flip the card, then after flip animation ends, open modal.
+    // We need to ensure the flip happens (add .flipped class) and then modal shows after flip.
+    // but also if already flipped? we keep consistent: each click flips, then reveals letter.
+    // To avoid double open, we use a small lock.
+    let isAnimating = false;
+    flipCard.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (isAnimating) return;
+      const idx = parseInt(flipCard.getAttribute('data-envelope-idx'), 10);
+      // if already flipped, we could still re-open? we reset? For UX: always perform flip and then show modal.
+      // if already flipped, we flip back? better: we ensure that when click, we add flip if not already,
+      // but then modal appears after transition. We'll remove class after modal closed maybe? Not needed, we keep visual flip but after modal closed we can reset?
+      // Better: on click, we force flip to "open" state (front to back), then after transition end, open modal.
+      // If card already flipped, we just open modal without extra flip? but design: every click -> envelope turns, then reveals content.
+      // So we reset flip before? Let's implement: remove flipped class, then re-add? that might look odd. Simpler: Always add flipped class if not present, then after transition open modal.
+      if (!flipCard.classList.contains('flipped')) {
+        flipCard.classList.add('flipped');
+        // wait for transition end then open modal
+        const onTransitionEnd = () => {
+          flipCard.removeEventListener('transitionend', onTransitionEnd);
+          isAnimating = false;
+          showLetterModal(idx);
+        };
+        flipCard.addEventListener('transitionend', onTransitionEnd, { once: true });
+        isAnimating = true;
+        // also add mini pulse effect
+        flipCard.classList.add('envelope-click-effect');
+        setTimeout(() => flipCard.classList.remove('envelope-click-effect'), 300);
+      } else {
+        // already flipped: we can still open modal directly (showing letter again)
+        // but we want the envelope to maybe do a little animation
+        flipCard.classList.add('envelope-click-effect');
+        setTimeout(() => flipCard.classList.remove('envelope-click-effect'), 200);
+        showLetterModal(idx);
+      }
+    });
+    
+    gridContainer.appendChild(flipCard);
+  }
+  
+  // ensure all letter data is consistent
+  for (let i=0; i<lettersData.length; i++) {
+    if (!lettersData[i].media) lettersData[i].media = [];
+    if (!lettersData[i].title) lettersData[i].title = `${envelopeNames[i]} · letter`;
+  }
+  
+  // Optional: close modal also reset no extra flip side effects
+  console.log("🌸 Pastel Named Envelopes ready! Click any envelope -> it turns & reveals the letter with images/videos.");
+  console.log("🗺️ Google Map added to 'Miss Home' envelope!");
+</script>
+</body>
+</html>
